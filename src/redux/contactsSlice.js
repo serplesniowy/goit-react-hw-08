@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as api from "../api/contacts";
+import axios from "axios";
 
 export const fetchContacts = createAsyncThunk(
   "contacts/fetchContacts",
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.fetchContacts();
-      // console.log("Fetched contacts:", response);
+
       return response;
     } catch (error) {
       return rejectWithValue({
@@ -99,8 +100,40 @@ const contactsSlice = createSlice({
       .addCase(deleteContact.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(updateContact.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateContact.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.items.findIndex(
+          (contact) => contact.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+      })
+      .addCase(updateContact.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
+
+export const updateContact = createAsyncThunk(
+  "contacts/updateContact",
+  async ({ id, updatedContact }, { rejectWithValue }) => {
+    try {
+      const response = await api.updateContact(id, updatedContact);
+      return response;
+    } catch (error) {
+      return rejectWithValue({
+        type: "UPDATE_CONTACT",
+        message: error.response?.data || error.message,
+      });
+    }
+  }
+);
 
 export default contactsSlice.reducer;

@@ -1,0 +1,15 @@
+.centeredTextContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  position: relative;
+}
+
+.centeredText {
+  font-size: 50px;
+  text-align: center;
+  color: orange;
+  position: absolute;
+  top: 33%;
+}

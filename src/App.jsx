@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
-import ContactForm from "./components/ContactForm";
-import ContactList from "./components/ContactList";
-import SearchBox from "./components/SearchBox";
+import ContactForm from "./components/ContactForm/ContactForm";
+import ContactList from "./components/ContactList/ContactList";
+import SearchBox from "./components/SearchBox/SearchBox";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchContacts,
@@ -11,61 +11,62 @@ import {
 import { selectFilteredContacts } from "./redux/selectors";
 import { setFilter } from "./redux/filterSlice";
 import styles from "./App.module.css";
+import { Route, Routes } from "react-router-dom";
+import SharedLayout from "./components/SharedLayout";
+import { lazy } from "react";
+import { RestrictedRoute } from "./components/RestrictedRoute";
+import { PrivateRoute } from "./components/PrivateRoute";
+import { Toaster } from "react-hot-toast";
+import { refreshUser } from "./redux/auth/operations";
+import { selectIsRefresh } from "./redux/auth/selectors";
 
-const App = () => {
-  const {
-    items: contacts,
-    loading,
-    error,
-  } = useSelector((state) => state.contacts);
-  const filter = useSelector((state) => state.filters.name);
-  const filteredContacts = useSelector(selectFilteredContacts);
+const HomePage = lazy(() => import("./pages/HomePage/Home"));
+const ContactPage = lazy(() => import("./pages/ContactPage/Contact"));
+const LoginPage = lazy(() => import("./pages/LoginPage/Login"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage/Register"));
+
+function App() {
+  const isRefreshUser = useSelector(selectIsRefresh);
   const dispatch = useDispatch();
-
   useEffect(() => {
-    dispatch(fetchContacts());
-  }, [dispatch]);
+    dispatch(refreshUser());
+  }, []);
 
-  const handleAddContact = (name, number) => {
-    const isDuplicate = contacts.some(
-      (contact) => contact.name.toLowerCase() === name.toLowerCase()
-    );
-
-    if (isDuplicate) {
-      alert("Contact with this name already exists.");
-      return;
-    }
-
-    dispatch(addContact({ name, number }));
-  };
-  const handleDeleteContact = (id) => {
-    dispatch(deleteContact(id));
-  };
-
-  const handleFilterChange = (e) => {
-    dispatch(setFilter(e.target.value));
-  };
+  if (isRefreshUser) {
+    return <p>Refreshing...</p>;
+  }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.header}>Phonebook</h1>
-      <ContactForm onAddContact={handleAddContact} />
-      <SearchBox value={filter} onChange={handleFilterChange} />
-      {loading && <p>Loading contacts...</p>}
-      {error && (
-        <p>
-          Error: {error.message}{" "}
-          {error.type === "FETCH_CONTACTS" && " - Failed to fetch contacts."}
-          {error.type === "ADD_CONTACT" && " - Failed to add contact."}
-          {error.type === "DELETE_CONTACT" && " - Failed to delete contact."}
-        </p>
-      )}
-      <ContactList
-        contacts={filteredContacts}
-        onDeleteContact={handleDeleteContact}
-      />
-    </div>
+    <SharedLayout>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/contacts"
+          element={
+            <PrivateRoute redirectPath="/login" Component={<ContactPage />} />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <RestrictedRoute
+              redirectPath="/contacts"
+              Component={<LoginPage />}
+            />
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <RestrictedRoute
+              redirectPath="/contacts"
+              Component={<RegisterPage />}
+            />
+          }
+        />
+      </Routes>
+    </SharedLayout>
   );
-};
+}
 
 export default App;
